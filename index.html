@@ -35,9 +35,11 @@
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><path d='M1 3l5 5 5-5' stroke='%233fcca1' stroke-width='2' fill='none'/></svg>");
     background-repeat:no-repeat;background-position:right 9px center}
   .ctl{display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 13px}
-  #gpsBtn,#swapBtn{font-size:13px;font-weight:600;border-radius:99px;padding:5px 13px;
+  #gpsBtn,#swapBtn,#dayBtn{font-size:13px;font-weight:600;border-radius:99px;padding:5px 13px;
     border:1px solid var(--line);background:var(--card);color:var(--sub);transition:.15s}
   #gpsBtn.on{color:var(--grn);background:var(--grnbg);border-color:var(--grn)}
+  #dayBtn{color:var(--grn);background:var(--grnbg);border-color:var(--grn)}
+  #dayBtn.holi{color:var(--kin);background:var(--kinbg);border-color:var(--kin)}
   #loc{font-size:12px;color:var(--sub)}
   .card{background:var(--card);border:.5px solid var(--line);border-radius:14px;overflow:hidden}
   .row{display:flex;align-items:center;gap:10px;padding:13px 15px;border-top:.5px solid var(--line)}
@@ -52,7 +54,6 @@
   .tagwrap{flex:1;display:flex;justify-content:center;align-items:center}
   .row.next .tag{font-size:20px;font-weight:700;color:var(--nextink);background:rgba(0,0,0,.25);border:.5px solid var(--nextline);border-radius:99px;padding:4px 14px;white-space:nowrap}
   .foot{flex-shrink:0;margin-top:13px;padding:0 4px;font-size:11px;color:var(--hint);line-height:1.7}
-  #status{text-align:center;font-size:14px;font-weight:700;margin-bottom:4px;letter-spacing:.04em}
   .legend{display:flex;justify-content:center;gap:14px;margin-top:2px;font-size:13px;color:var(--sub)}
   .legend span{display:flex;align-items:center;gap:6px}
   .legend i{width:13px;height:13px;border-radius:3px;display:inline-block;flex-shrink:0}
@@ -70,11 +71,11 @@
     <div class="ctl">
       <button id="gpsBtn">現在地</button>
       <button id="swapBtn">⇅ 入替</button>
+      <button id="dayBtn">平日</button>
     </div>
   </div>
   <div class="card" id="list"></div>
   <div class="foot">
-    <div id="status"></div>
     <div class="legend">
       <span><i style="background:var(--grn)"></i>竹田・国際会館 行</span>
       <span><i style="background:var(--kin)"></i>新田辺・近鉄奈良 行</span>
@@ -85,6 +86,7 @@
 
 <script>
 var DATA=null, FROM=null, TO=null, NEAREST=null, userPickedFrom=false;
+var DAYSEL=null, userPickedDay=false;   // 表示中の種別 'weekday'|'holiday'
 function toMin(t){var p=t.split(":");return +p[0]*60+ +p[1];}
 function idx(s){return DATA.order.indexOf(s);}
 function dirOf(a,b){return idx(b)>idx(a)?'south':'north';}
@@ -111,6 +113,7 @@ function jpHolidaySet(y){
   return H;
 }
 function isHolidayType(d){var w=d.getDay();if(w===0||w===6)return true;return !!jpHolidaySet(d.getFullYear())[(d.getMonth()+1)+"-"+d.getDate()];}
+function todayType(){return isHolidayType(new Date())?'holiday':'weekday';}
 
 function otherTerm(s){return s==='竹田'?'国際会館':'竹田';}
 function defaultTo(from){var tt=new Date().getHours()<12?'竹田':'国際会館';return tt===from?otherTerm(from):tt;}
@@ -121,17 +124,19 @@ function render(){
   document.getElementById('fromSel').value=FROM;
   document.getElementById('toSel').value=TO;
   document.getElementById('gpsBtn').classList.toggle('on', !!NEAREST && FROM===NEAREST);
-  var holi=isHolidayType(new Date());
-  var st=document.getElementById('status');
-  st.textContent=holi?'土曜・休日ダイヤ':'平日ダイヤ';st.style.color=holi?'var(--kin)':'var(--grn)';
-  var lst=DATA[holi?'holiday':'weekday'][dirOf(FROM,TO)];
+  if(!DAYSEL)DAYSEL=todayType();
+  var db=document.getElementById('dayBtn');
+  db.textContent=DAYSEL==='holiday'?'休日':'平日';
+  db.classList.toggle('holi',DAYSEL==='holiday');
+  var showNext=(DAYSEL===todayType());   // 今日の種別を表示中のみ「次発」を出す
+  var lst=DATA[DAYSEL][dirOf(FROM,TO)];
   var nm=new Date().getHours()*60+new Date().getMinutes(),done=false,html='';
   var rows=[];
   lst.forEach(function(tr){var t=tr.t;if(t[FROM]&&t[TO])rows.push([tr.dest,t[FROM],t[TO]]);});
   rows.sort(function(a,b){return toMin(a[1])-toMin(b[1]);});
   rows.forEach(function(r){
     var dest=r[0],dep=r[1],arr=r[2];
-    var nx=!done&&toMin(dep)>=nm;if(nx)done=true;
+    var nx=showNext&&!done&&toMin(dep)>=nm;if(nx)done=true;
     var dur=toMin(arr)-toMin(dep);if(dur<0)dur+=1440;
     var thru=(dest==='新田辺'||dest==='近鉄奈良');
     html+='<div class="row'+(nx?' next':'')+'"'+(nx?' id="nextt"':'')+'>'
@@ -156,7 +161,7 @@ function locate(){
   },function(){if(!FROM)fallback();render();},
   {enableHighAccuracy:false,timeout:8000,maximumAge:60000});
 }
-function refresh(){if(!DATA)return;if(userPickedFrom){render();}else{if(!FROM)fallback();render();locate();}}
+function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userPickedFrom){render();}else{if(!FROM)fallback();render();locate();}}
 
 (function(){
   fetch('timetable.json').then(function(r){return r.json();}).then(function(j){
@@ -168,6 +173,8 @@ function refresh(){if(!DATA)return;if(userPickedFrom){render();}else{if(!FROM)fa
     ts.addEventListener('change',function(){TO=ts.value;render();});
     document.getElementById('gpsBtn').addEventListener('click',function(){userPickedFrom=false;locate();});
     document.getElementById('swapBtn').addEventListener('click',function(){var a=FROM;FROM=TO;TO=a;userPickedFrom=true;render();});
+    document.getElementById('dayBtn').addEventListener('click',function(){DAYSEL=DAYSEL==='holiday'?'weekday':'holiday';userPickedDay=true;render();});
+    DAYSEL=todayType();
     refresh();
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
