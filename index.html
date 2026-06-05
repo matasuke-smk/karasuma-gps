@@ -24,6 +24,8 @@
   .wrap{height:100vh;height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
     padding-top:max(16px,env(safe-area-inset-top));padding-left:14px;padding-right:14px;padding-bottom:8px}
   .hd{flex-shrink:0}
+  .title{text-align:center;font-size:14px;font-weight:700;color:var(--ink);letter-spacing:.03em;
+    padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid var(--line)}
   #list{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
   #list::-webkit-scrollbar{width:0;height:0;display:none}
   .route{font-size:18px;font-weight:600;margin:0 2px 8px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
@@ -67,6 +69,7 @@
 <body>
 <div class="wrap">
   <div class="hd">
+    <div class="title">京都市営地下鉄 烏丸線</div>
     <div class="route">
       <select class="stsel" id="fromSel" aria-label="出発駅"></select>
       <span class="ar">→</span>
