@@ -20,8 +20,9 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
   html{height:100%}
   body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
-    background:var(--bg);color:var(--ink);line-height:1.4;height:100vh;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
-  .wrap{height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
+    background:var(--bg);color:var(--ink);line-height:1.4;height:100vh;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column}
+  .wrap{flex:1 1 auto;min-height:0;width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;
     padding-top:max(16px,env(safe-area-inset-top));padding-left:14px;padding-right:14px;padding-bottom:8px}
   .hd{flex-shrink:0}
   #list{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
