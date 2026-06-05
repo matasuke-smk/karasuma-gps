@@ -156,13 +156,16 @@ function render(){
 }
 
 function fallback(){var am=new Date().getHours()<12;FROM=am?'国際会館':'竹田';TO=am?'竹田':'国際会館';}
-// 現在地→指定駅の徒歩経路を地図アプリで開く（iOS=Appleマップ / その他=Googleマップ）
+// 現在地→指定駅の徒歩経路をGoogleマップで開く。
+// comgooglemaps:// で「アプリを直接」起動 → PWAに空白ブラウザを残さず、戻りもクリーン。
+// アプリ未導入のときだけ Web版にフォールバック。
 function openRoute(st){
   if(!DATA)return;var c=DATA.coords[st];if(!c)return;var d=c[0]+','+c[1];
-  var iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  var url=iOS?('https://maps.apple.com/?daddr='+d+'&dirflg=w')
-             :('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(d)+'&travelmode=walking');
-  window.open(url,'_blank');
+  var app='comgooglemaps://?daddr='+d+'&directionsmode=walking';
+  var web='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(d)+'&travelmode=walking';
+  var t=Date.now();
+  location.href=app;
+  setTimeout(function(){if(document.visibilityState==='visible'&&Date.now()-t<2500)window.open(web,'_blank');},1500);
 }
 function locate(){
   if(!navigator.geolocation){if(!FROM)fallback();render();return;}
