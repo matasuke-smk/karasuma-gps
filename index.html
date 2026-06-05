@@ -66,9 +66,9 @@
 <div class="wrap">
   <div class="hd">
     <div class="route">
-      <select class="stsel" id="fromSel" aria-label="出発駅"></select><span class="lbl">発</span>
+      <select class="stsel" id="fromSel" aria-label="出発駅"></select>
       <span class="ar">→</span>
-      <select class="stsel" id="toSel" aria-label="到着駅"></select><span class="lbl">着</span>
+      <select class="stsel" id="toSel" aria-label="到着駅"></select>
     </div>
     <div class="ctl">
       <button id="gpsBtn">現在地</button>
@@ -90,6 +90,7 @@
 <script>
 var DATA=null, FROM=null, TO=null, NEAREST=null, userPickedFrom=false;
 var DAYSEL=null, userPickedDay=false;   // 表示中の種別 'weekday'|'holiday'
+var NEXTMIN=null;                       // 現在ハイライト中の次発(分)。経過したら自動更新
 function toMin(t){var p=t.split(":");return +p[0]*60+ +p[1];}
 function idx(s){return DATA.order.indexOf(s);}
 function dirOf(a,b){return idx(b)>idx(a)?'south':'north';}
@@ -133,17 +134,17 @@ function render(){
   db.classList.toggle('holi',DAYSEL==='holiday');
   var showNext=(DAYSEL===todayType());   // 今日の種別を表示中のみ「次発」を出す
   var lst=DATA[DAYSEL][dirOf(FROM,TO)];
-  var nm=new Date().getHours()*60+new Date().getMinutes(),done=false,html='';
+  var nm=new Date().getHours()*60+new Date().getMinutes(),done=false,html='';NEXTMIN=null;
   var rows=[];
   lst.forEach(function(tr){var t=tr.t;if(t[FROM]&&t[TO])rows.push([tr.dest,t[FROM],t[TO]]);});
   rows.sort(function(a,b){return toMin(a[1])-toMin(b[1]);});
   rows.forEach(function(r){
     var dest=r[0],dep=r[1],arr=r[2];
-    var nx=showNext&&!done&&toMin(dep)>=nm;if(nx)done=true;
+    var nx=showNext&&!done&&toMin(dep)>=nm;if(nx){done=true;NEXTMIN=toMin(dep);}
     var dur=toMin(arr)-toMin(dep);if(dur<0)dur+=1440;
     var thru=(dest==='新田辺'||dest==='近鉄奈良');
     html+='<div class="row'+(nx?' next':'')+'"'+(nx?' id="nextt"':'')+'>'
-      +'<span class="b '+(thru?'bk':'bg')+'">'+dest+'</span>'
+      +'<span class="b '+(thru?'bk':'bg')+'">'+dest+'行</span>'
       +'<span class="time"><b>'+dep+'</b><span class="to">→</span><b class="arr">'+arr+'</b></span>'
       +(nx?'<span class="tagwrap"><span class="tag">次発</span></span>':'')
       +'<span class="right"><span class="dur">'+dur+'分</span></span></div>';
@@ -191,6 +192,8 @@ function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userP
     document.getElementById('navBtn').addEventListener('click',function(){openRoute(NEAREST||FROM);});
     DAYSEL=todayType();
     refresh();
+    // 開いたまま次発時刻を過ぎたら自動で次発を更新（20秒ごとに確認）
+    setInterval(function(){if(DATA&&NEXTMIN!=null){var nm=new Date().getHours()*60+new Date().getMinutes();if(nm>=NEXTMIN)render();}},20000);
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refresh();});
