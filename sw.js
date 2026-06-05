@@ -1,4 +1,4 @@
-const CACHE = 'karasuma-gps-v11';
+const CACHE = 'karasuma-gps-v12';
 const ASSETS = [
   './',
   './index.html',
