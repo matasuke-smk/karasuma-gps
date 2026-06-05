@@ -56,7 +56,8 @@
   .row.next{background:var(--next)}
   .tagwrap{flex:1;display:flex;justify-content:center;align-items:center}
   .row.next .tag{font-size:20px;font-weight:700;color:var(--nextink);background:rgba(0,0,0,.25);border:.5px solid var(--nextline);border-radius:99px;padding:4px 14px;white-space:nowrap;text-align:center}
-  .row.next .tag .after{display:block;font-size:12px;font-weight:600;margin-top:1px}
+  .after{font-size:13px;font-weight:600;color:var(--sub);font-variant-numeric:tabular-nums}
+  .row.next .tag .after{display:block;font-size:12px;margin-top:1px;color:var(--nextink)}
   .foot{flex-shrink:0;margin-top:13px;padding:0 4px;font-size:11px;color:var(--hint);line-height:1.7}
   .navbtn{display:block;width:100%;margin:0 0 10px;font-size:21px;font-weight:700;color:var(--grn);
     background:var(--grnbg);border:1px solid var(--grn);border-radius:10px;padding:10px 14px}
@@ -143,7 +144,7 @@ function render(recenter){
   var showNext=(DAYSEL===todayType()&&FROM===NEAREST);
   var lst=DATA[DAYSEL][dirOf(FROM,TO)];
   var nowSec=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
-  var done=false,html='';NEXTAT=null;NEXTDEP=null;
+  var upCount=0,html='';NEXTAT=null;NEXTDEP=null;
   // 現在地→最寄り駅の徒歩所要(目安)を計算し「○○駅まで案内（徒歩○分）」を表示
   var walkNear=walkLabel();
   // 出発駅が最寄り駅のとき、徒歩時間+5秒の余裕を見て「確実に間に合う次発」を選ぶ
@@ -156,16 +157,21 @@ function render(recenter){
   rows.sort(function(a,b){return toMin(a[1])-toMin(b[1]);});
   rows.forEach(function(r){
     var dest=r[0],dep=r[1],arr=r[2],depSec=toMin(dep)*60;
-    var isTarget=!done&&depSec>=targetSec;if(isTarget){done=true;if(showNext)NEXTAT=depSec-walkMin*60-LEAD;}
+    var atOrAfter=depSec>=targetSec,idx=atOrAfter?upCount++:-1;
+    var isTarget=idx===0;                 // 中央に置く次発
     var hl=showNext&&isTarget;            // 次発ハイライト(現在地のみ)
-    if(hl)NEXTDEP=depSec;
-    var dim=showNext&&depSec<targetSec;   // 間に合わない便(現在地のみ淡色)
+    if(hl){NEXTDEP=depSec;NEXTAT=depSec-walkMin*60-LEAD;}
+    var dim=showNext&&depSec<targetSec;   // 間に合わない/発車済み(現在地のみ淡色)
+    // 「○分後」: 現時刻以降の未発車便（次発までの便も）＋次発＋2本先まで
+    var showAfter=depSec>=nowSec&&(!atOrAfter||idx<3);
     var dur=toMin(arr)-toMin(dep);if(dur<0)dur+=1440;
     var thru=(dest==='新田辺'||dest==='近鉄奈良');
+    var center=hl?('<span class="tag">次発<span class="after" data-dep="'+depSec+'">'+fmtAfter(depSec,nowSec)+'</span></span>')
+               :(showAfter?('<span class="after" data-dep="'+depSec+'">'+fmtAfter(depSec,nowSec)+'</span>'):'');
     html+='<div class="row'+(hl?' next':'')+(dim?' past':'')+'"'+(isTarget?' id="nextt"':'')+'>'
       +'<span class="b '+(thru?'bk':'bg')+'">'+dest+'<span class="sfx">行</span></span>'
       +'<span class="time"><b>'+dep+'</b><span class="to">→</span><b class="arr">'+arr+'</b></span>'
-      +(hl?'<span class="tagwrap"><span class="tag">次発<span class="after">'+fmtAfter(depSec,nowSec)+'</span></span></span>':'')
+      +(center?'<span class="tagwrap">'+center+'</span>':'')
       +'<span class="right"><span class="dur">'+dur+'分</span></span></div>';
   });
   if(!rows.length)html='<div class="row">この区間の列車がありません。</div>';
@@ -189,13 +195,12 @@ function isAtDefault(){
   var target=list.scrollTop+(nr.top-lr.top)-(list.clientHeight-nr.height)/2;
   return Math.abs(list.scrollTop-target)<10;
 }
-function fmtAfter(depSec,nowSec){var a=Math.round((depSec-nowSec)/60);return a<=0?'まもなく':a+'分後';}
-// 「○分後」だけを更新（再描画せずスクロールも触らない）
+function fmtAfter(depSec,nowSec){var a=Math.round((depSec-nowSec)/60);return a<0?'':(a===0?'まもなく':a+'分後');}
+// 「○分後」表示を全て更新（再描画せずスクロールも触らない）
 function updateAfter(){
-  if(NEXTDEP==null)return;
-  var el=document.querySelector('#nextt .after');if(!el)return;
+  var els=document.querySelectorAll('.after');if(!els.length)return;
   var d=new Date(),s=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
-  el.textContent=fmtAfter(NEXTDEP,s);
+  for(var i=0;i<els.length;i++){var dp=els[i].getAttribute('data-dep');if(dp!==null)els[i].textContent=fmtAfter(+dp,s);}
 }
 
 function fallback(){var am=new Date().getHours()<12;FROM=am?'国際会館':'竹田';TO=am?'竹田':'国際会館';}
