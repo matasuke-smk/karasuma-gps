@@ -63,8 +63,16 @@
   .legend i{width:13px;height:13px;border-radius:3px;display:inline-block;flex-shrink:0}
   .meta{font-size:11px;color:var(--hint);margin:6px 0 0;text-align:center}
 </style>
+<style id="diag">
+  /* === 一時診断用（後で削除） === */
+  body{background:#cc0000 !important}               /* 赤 = body が見えている領域 */
+  .wrap{background:rgba(0,90,0,.20) !important}      /* 緑 = wrap 全体 */
+  #list{outline:3px solid #1e90ff !important}        /* 青枠 = リスト領域 */
+  .foot{background:rgba(255,150,0,.40) !important}   /* 橙 = フッター領域 */
+</style>
 </head>
 <body>
+<div id="diagBottom" style="position:fixed;left:0;right:0;bottom:0;height:3px;background:#ff0;z-index:9999"></div>
 <div class="wrap">
   <div class="hd">
     <div class="route">
