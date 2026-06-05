@@ -70,7 +70,6 @@
     <div class="ctl">
       <button id="gpsBtn">現在地</button>
       <button id="swapBtn">⇅ 入替</button>
-      <span id="loc"></span>
     </div>
   </div>
   <div class="card" id="list"></div>
@@ -150,14 +149,11 @@ function render(){
 
 function fallback(){var am=new Date().getHours()<12;FROM=am?'国際会館':'竹田';TO=am?'竹田':'国際会館';}
 function locate(){
-  var loc=document.getElementById('loc');
-  if(!navigator.geolocation){loc.textContent='位置情報非対応';if(!FROM){fallback();}render();return;}
-  loc.textContent='現在地を取得中…';
+  if(!navigator.geolocation){if(!FROM)fallback();render();return;}
   navigator.geolocation.getCurrentPosition(function(p){
     FROM=nearest(p.coords.latitude,p.coords.longitude);NEAREST=FROM;userPickedFrom=false;
-    if(!TO||TO===FROM)TO=defaultTo(FROM);
-    loc.textContent='最寄り: '+FROM;render();
-  },function(){loc.textContent='位置情報が使えません（駅を手動選択）';if(!FROM)fallback();render();},
+    if(!TO||TO===FROM)TO=defaultTo(FROM);render();
+  },function(){if(!FROM)fallback();render();},
   {enableHighAccuracy:false,timeout:8000,maximumAge:60000});
 }
 function refresh(){if(!DATA)return;if(userPickedFrom){render();}else{if(!FROM)fallback();render();locate();}}
@@ -168,12 +164,10 @@ function refresh(){if(!DATA)return;if(userPickedFrom){render();}else{if(!FROM)fa
     var opts=j.order.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
     var fs=document.getElementById('fromSel'),ts=document.getElementById('toSel');
     fs.innerHTML=opts;ts.innerHTML=opts;
-    fs.addEventListener('change',function(){FROM=fs.value;userPickedFrom=true;if(TO===FROM)TO=defaultTo(FROM);
-      document.getElementById('loc').textContent='手動選択: '+FROM;render();});
+    fs.addEventListener('change',function(){FROM=fs.value;userPickedFrom=true;if(TO===FROM)TO=defaultTo(FROM);render();});
     ts.addEventListener('change',function(){TO=ts.value;render();});
     document.getElementById('gpsBtn').addEventListener('click',function(){userPickedFrom=false;locate();});
-    document.getElementById('swapBtn').addEventListener('click',function(){var a=FROM;FROM=TO;TO=a;userPickedFrom=true;
-      document.getElementById('loc').textContent='手動選択: '+FROM;render();});
+    document.getElementById('swapBtn').addEventListener('click',function(){var a=FROM;FROM=TO;TO=a;userPickedFrom=true;render();});
     refresh();
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
@@ -183,7 +177,7 @@ window.addEventListener('pageshow',function(){refresh();});
   document.addEventListener('touchstart',function(e){if(e.touches.length!==1){tk=false;return;}sx=e.touches[0].clientX;sy=e.touches[0].clientY;tk=true;},{passive:true});
   document.addEventListener('touchend',function(e){if(!tk)return;tk=false;var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
     if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.5)return;
-    var a=FROM;FROM=TO;TO=a;userPickedFrom=true;document.getElementById('loc').textContent='手動選択: '+FROM;render();},{passive:true});
+    var a=FROM;FROM=TO;TO=a;userPickedFrom=true;render();},{passive:true});
 })();
 if('serviceWorker' in navigator){
   var hadController=!!navigator.serviceWorker.controller,reloaded=false;
