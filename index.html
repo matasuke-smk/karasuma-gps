@@ -55,7 +55,8 @@
   .dur{font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
   .row.next{background:var(--next)}
   .tagwrap{flex:1;display:flex;justify-content:center;align-items:center}
-  .row.next .tag{font-size:20px;font-weight:700;color:var(--nextink);background:rgba(0,0,0,.25);border:.5px solid var(--nextline);border-radius:99px;padding:4px 14px;white-space:nowrap}
+  .row.next .tag{font-size:20px;font-weight:700;color:var(--nextink);background:rgba(0,0,0,.25);border:.5px solid var(--nextline);border-radius:99px;padding:4px 14px;white-space:nowrap;text-align:center}
+  .row.next .tag .after{display:block;font-size:12px;font-weight:600;margin-top:1px}
   .foot{flex-shrink:0;margin-top:13px;padding:0 4px;font-size:11px;color:var(--hint);line-height:1.7}
   .navbtn{display:block;width:100%;margin:0 0 10px;font-size:21px;font-weight:700;color:var(--grn);
     background:var(--grnbg);border:1px solid var(--grn);border-radius:10px;padding:10px 14px}
@@ -95,6 +96,7 @@
 var DATA=null, FROM=null, TO=null, NEAREST=null, userPickedFrom=false;
 var DAYSEL=null, userPickedDay=false;   // 表示中の種別 'weekday'|'holiday'
 var NEXTAT=null;                        // 次発が間に合わなくなる時刻(秒)。超えたら自動更新
+var NEXTDEP=null;                       // 次発の発車時刻(秒)。「○分後」の更新用
 var POS=null;                           // 現在地座標 {lat,lon}（徒歩所要の算出用）
 function toMin(t){var p=t.split(":");return +p[0]*60+ +p[1];}
 function idx(s){return DATA.order.indexOf(s);}
@@ -127,7 +129,7 @@ function todayType(){return isHolidayType(new Date())?'holiday':'weekday';}
 function otherTerm(s){return s==='竹田'?'国際会館':'竹田';}
 function defaultTo(from){var tt=new Date().getHours()<12?'竹田':'国際会館';return tt===from?otherTerm(from):tt;}
 
-function render(){
+function render(recenter){
   if(!DATA||!FROM||!TO)return;
   if(FROM===TO)TO=defaultTo(FROM);
   document.getElementById('fromSel').value=FROM;
@@ -141,7 +143,7 @@ function render(){
   var showNext=(DAYSEL===todayType()&&FROM===NEAREST);
   var lst=DATA[DAYSEL][dirOf(FROM,TO)];
   var nowSec=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
-  var done=false,html='';NEXTAT=null;
+  var done=false,html='';NEXTAT=null;NEXTDEP=null;
   // 現在地→最寄り駅の徒歩所要(目安): 直線距離×1.5(信号・碁盤の目の迂回)÷80m/分 + 1分
   var walkNear=null;
   if(POS&&NEAREST&&DATA.coords[NEAREST]){
@@ -161,25 +163,36 @@ function render(){
     var dest=r[0],dep=r[1],arr=r[2],depSec=toMin(dep)*60;
     var isTarget=!done&&depSec>=targetSec;if(isTarget){done=true;if(showNext)NEXTAT=depSec-walkMin*60-LEAD;}
     var hl=showNext&&isTarget;            // 次発ハイライト(現在地のみ)
+    if(hl)NEXTDEP=depSec;
     var dim=showNext&&depSec<targetSec;   // 間に合わない便(現在地のみ淡色)
     var dur=toMin(arr)-toMin(dep);if(dur<0)dur+=1440;
     var thru=(dest==='新田辺'||dest==='近鉄奈良');
     html+='<div class="row'+(hl?' next':'')+(dim?' past':'')+'"'+(isTarget?' id="nextt"':'')+'>'
       +'<span class="b '+(thru?'bk':'bg')+'">'+dest+'<span class="sfx">行</span></span>'
       +'<span class="time"><b>'+dep+'</b><span class="to">→</span><b class="arr">'+arr+'</b></span>'
-      +(hl?'<span class="tagwrap"><span class="tag">次発</span></span>':'')
+      +(hl?'<span class="tagwrap"><span class="tag">次発<span class="after">'+fmtAfter(depSec,nowSec)+'</span></span></span>':'')
       +'<span class="right"><span class="dur">'+dur+'分</span></span></div>';
   });
   if(!rows.length)html='<div class="row">この区間の列車がありません。</div>';
-  var list=document.getElementById('list');list.scrollTop=0;list.innerHTML=html;
-  centerNext();
+  var list=document.getElementById('list'),sc=list.scrollTop;list.innerHTML=html;
+  if(recenter===false)list.scrollTop=sc;   // 次発の自動更新時はスクロール位置を維持
+  else centerNext();
 }
 // #nextt（中央に置く対象）が縦中央に来るようにスクロール
 function centerNext(){
   var list=document.getElementById('list'),nb=document.getElementById('nextt');
   if(!list||!nb)return;
+  list.scrollTop=0;
   var lr=list.getBoundingClientRect(),nr=nb.getBoundingClientRect();
   list.scrollTop+=(nr.top-lr.top)-(list.clientHeight-nr.height)/2;
+}
+function fmtAfter(depSec,nowSec){var a=Math.round((depSec-nowSec)/60);return a<=0?'まもなく':a+'分後';}
+// 「○分後」だけを更新（再描画せずスクロールも触らない）
+function updateAfter(){
+  if(NEXTDEP==null)return;
+  var el=document.querySelector('#nextt .after');if(!el)return;
+  var d=new Date(),s=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
+  el.textContent=fmtAfter(NEXTDEP,s);
 }
 
 function fallback(){var am=new Date().getHours()<12;FROM=am?'国際会館':'竹田';TO=am?'竹田':'国際会館';}
@@ -219,7 +232,8 @@ function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userP
     DAYSEL=todayType();
     refresh();
     // 開いたまま次発時刻を過ぎたら自動で次発を更新（20秒ごとに確認）
-    setInterval(function(){if(DATA&&NEXTAT!=null){var s=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();if(s>NEXTAT)render();}},5000);
+    setInterval(function(){if(!DATA)return;var s=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
+      if(NEXTAT!=null&&s>NEXTAT)render(false);else updateAfter();},1000);
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refresh();});
