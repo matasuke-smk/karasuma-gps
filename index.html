@@ -54,6 +54,8 @@
   .tagwrap{flex:1;display:flex;justify-content:center;align-items:center}
   .row.next .tag{font-size:20px;font-weight:700;color:var(--nextink);background:rgba(0,0,0,.25);border:.5px solid var(--nextline);border-radius:99px;padding:4px 14px;white-space:nowrap}
   .foot{flex-shrink:0;margin-top:13px;padding:0 4px;font-size:11px;color:var(--hint);line-height:1.7}
+  .navbtn{display:block;width:100%;margin:0 0 10px;font-size:14px;font-weight:700;color:var(--grn);
+    background:var(--grnbg);border:1px solid var(--grn);border-radius:10px;padding:10px 14px}
   .legend{display:flex;justify-content:center;gap:14px;margin-top:2px;font-size:13px;color:var(--sub)}
   .legend span{display:flex;align-items:center;gap:6px}
   .legend i{width:13px;height:13px;border-radius:3px;display:inline-block;flex-shrink:0}
@@ -76,6 +78,7 @@
   </div>
   <div class="card" id="list"></div>
   <div class="foot">
+    <button id="navBtn" class="navbtn">最寄り駅まで案内</button>
     <div class="legend">
       <span><i style="background:var(--grn)"></i>竹田・国際会館 行</span>
       <span><i style="background:var(--kin)"></i>新田辺・近鉄奈良 行</span>
@@ -153,6 +156,14 @@ function render(){
 }
 
 function fallback(){var am=new Date().getHours()<12;FROM=am?'国際会館':'竹田';TO=am?'竹田':'国際会館';}
+// 現在地→指定駅の徒歩経路を地図アプリで開く（iOS=Appleマップ / その他=Googleマップ）
+function openRoute(st){
+  if(!DATA)return;var c=DATA.coords[st];if(!c)return;var d=c[0]+','+c[1];
+  var iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var url=iOS?('https://maps.apple.com/?daddr='+d+'&dirflg=w')
+             :('https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(d)+'&travelmode=walking');
+  window.open(url,'_blank');
+}
 function locate(){
   if(!navigator.geolocation){if(!FROM)fallback();render();return;}
   navigator.geolocation.getCurrentPosition(function(p){
@@ -174,6 +185,7 @@ function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userP
     document.getElementById('gpsBtn').addEventListener('click',function(){userPickedFrom=false;locate();});
     document.getElementById('swapBtn').addEventListener('click',function(){var a=FROM;FROM=TO;TO=a;userPickedFrom=true;render();});
     document.getElementById('dayBtn').addEventListener('click',function(){DAYSEL=DAYSEL==='holiday'?'weekday':'holiday';userPickedDay=true;render();});
+    document.getElementById('navBtn').addEventListener('click',function(){openRoute(NEAREST||FROM);});
     DAYSEL=todayType();
     refresh();
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
