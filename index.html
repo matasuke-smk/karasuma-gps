@@ -64,15 +64,15 @@
   .meta{font-size:11px;color:var(--hint);margin:6px 0 0;text-align:center}
 </style>
 <style id="diag">
-  /* === 一時診断用（後で削除） === */
-  body{background:#cc0000 !important}               /* 赤 = body が見えている領域 */
-  .wrap{background:rgba(0,90,0,.20) !important}      /* 緑 = wrap 全体 */
-  #list{outline:3px solid #1e90ff !important}        /* 青枠 = リスト領域 */
-  .foot{background:rgba(255,150,0,.40) !important}   /* 橙 = フッター領域 */
+  /* === 一時診断用（後で削除）: 不透明ではっきり別色 === */
+  body{background:#ff0000 !important}                /* 赤 = body */
+  .wrap{background:#0d3b8c !important}               /* 青 = wrap */
+  .foot{background:#ff9900 !important;color:#000 !important}  /* 橙 = footer */
 </style>
 </head>
 <body>
-<div id="diagBottom" style="position:fixed;left:0;right:0;bottom:0;height:3px;background:#ff0;z-index:9999"></div>
+<div style="position:fixed;top:0;left:50%;transform:translateX(-50%);background:#fff;color:#000;font:700 12px sans-serif;padding:2px 8px;z-index:99999">build diag19</div>
+<div id="diagBottom" style="position:fixed;left:0;right:0;bottom:0;height:3px;background:#000;z-index:9999"></div>
 <div class="wrap">
   <div class="hd">
     <div class="route">
