@@ -35,8 +35,9 @@
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12'><path d='M1 3l5 5 5-5' stroke='%233fcca1' stroke-width='2' fill='none'/></svg>");
     background-repeat:no-repeat;background-position:right 9px center}
   .ctl{display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 13px}
-  #gpsBtn,#swapBtn{font-size:13px;font-weight:600;color:var(--grn);background:var(--grnbg);
-    border:1px solid var(--grn);border-radius:99px;padding:5px 13px}
+  #gpsBtn,#swapBtn{font-size:13px;font-weight:600;border-radius:99px;padding:5px 13px;
+    border:1px solid var(--line);background:var(--card);color:var(--sub);transition:.15s}
+  #gpsBtn.on{color:var(--grn);background:var(--grnbg);border-color:var(--grn)}
   #loc{font-size:12px;color:var(--sub)}
   .card{background:var(--card);border:.5px solid var(--line);border-radius:14px;overflow:hidden}
   .row{display:flex;align-items:center;gap:10px;padding:13px 15px;border-top:.5px solid var(--line)}
@@ -67,7 +68,7 @@
       <select class="stsel" id="toSel" aria-label="到着駅"></select><span class="lbl">着</span>
     </div>
     <div class="ctl">
-      <button id="gpsBtn">📍 現在地</button>
+      <button id="gpsBtn">現在地</button>
       <button id="swapBtn">⇅ 入替</button>
       <span id="loc"></span>
     </div>
@@ -84,7 +85,7 @@
 </div>
 
 <script>
-var DATA=null, FROM=null, TO=null, userPickedFrom=false;
+var DATA=null, FROM=null, TO=null, NEAREST=null, userPickedFrom=false;
 function toMin(t){var p=t.split(":");return +p[0]*60+ +p[1];}
 function idx(s){return DATA.order.indexOf(s);}
 function dirOf(a,b){return idx(b)>idx(a)?'south':'north';}
@@ -120,6 +121,7 @@ function render(){
   if(FROM===TO)TO=defaultTo(FROM);
   document.getElementById('fromSel').value=FROM;
   document.getElementById('toSel').value=TO;
+  document.getElementById('gpsBtn').classList.toggle('on', !!NEAREST && FROM===NEAREST);
   var holi=isHolidayType(new Date());
   var st=document.getElementById('status');
   st.textContent=holi?'土曜・休日ダイヤ':'平日ダイヤ';st.style.color=holi?'var(--kin)':'var(--grn)';
@@ -152,9 +154,9 @@ function locate(){
   if(!navigator.geolocation){loc.textContent='位置情報非対応';if(!FROM){fallback();}render();return;}
   loc.textContent='現在地を取得中…';
   navigator.geolocation.getCurrentPosition(function(p){
-    FROM=nearest(p.coords.latitude,p.coords.longitude);userPickedFrom=false;
+    FROM=nearest(p.coords.latitude,p.coords.longitude);NEAREST=FROM;userPickedFrom=false;
     if(!TO||TO===FROM)TO=defaultTo(FROM);
-    loc.textContent='📍最寄り: '+FROM;render();
+    loc.textContent='最寄り: '+FROM;render();
   },function(){loc.textContent='位置情報が使えません（駅を手動選択）';if(!FROM)fallback();render();},
   {enableHighAccuracy:false,timeout:8000,maximumAge:60000});
 }
