@@ -187,6 +187,14 @@ function centerNext(){
   var lr=list.getBoundingClientRect(),nr=nb.getBoundingClientRect();
   list.scrollTop+=(nr.top-lr.top)-(list.clientHeight-nr.height)/2;
 }
+// いま #nextt が中央（デフォルト位置）に表示されているか
+function isAtDefault(){
+  var list=document.getElementById('list'),nb=document.getElementById('nextt');
+  if(!list||!nb)return true;
+  var lr=list.getBoundingClientRect(),nr=nb.getBoundingClientRect();
+  var target=list.scrollTop+(nr.top-lr.top)-(list.clientHeight-nr.height)/2;
+  return Math.abs(list.scrollTop-target)<10;
+}
 function fmtAfter(depSec,nowSec){var a=Math.round((depSec-nowSec)/60);return a<=0?'まもなく':a+'分後';}
 // 「○分後」だけを更新（再描画せずスクロールも触らない）
 function updateAfter(){
@@ -234,7 +242,7 @@ function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userP
     refresh();
     // 開いたまま次発時刻を過ぎたら自動で次発を更新（20秒ごとに確認）
     setInterval(function(){if(!DATA)return;var s=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
-      if(NEXTAT!=null&&s>NEXTAT)render(false);else updateAfter();},1000);
+      if(NEXTAT!=null&&s>NEXTAT){var atDef=isAtDefault();render(atDef);}else updateAfter();},1000);
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refresh();});
