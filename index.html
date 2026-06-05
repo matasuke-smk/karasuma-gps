@@ -150,7 +150,8 @@ function render(recenter){
     var dm=hav(POS.lat,POS.lon,DATA.coords[NEAREST][0],DATA.coords[NEAREST][1])*1000;
     walkNear=Math.ceil(dm*1.5/80)+1;
   }
-  document.getElementById('navBtn').textContent='最寄り駅まで案内'+(walkNear!=null?('（約'+walkNear+'分）'):'');
+  var navTgt=NEAREST||FROM;  // 徒歩で向かう先＝最寄り駅
+  document.getElementById('navBtn').textContent=(navTgt?navTgt+'駅':'最寄り駅')+'まで案内'+(walkNear!=null?('（徒歩'+walkNear+'分）'):'');
   // 出発駅が最寄り駅のとき、徒歩時間+5秒の余裕を見て「確実に間に合う次発」を選ぶ
   var walkMin=(FROM===NEAREST&&walkNear!=null)?walkNear:0,LEAD=5;
   var needSec=nowSec+walkMin*60+LEAD;
