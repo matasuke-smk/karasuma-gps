@@ -144,14 +144,8 @@ function render(recenter){
   var lst=DATA[DAYSEL][dirOf(FROM,TO)];
   var nowSec=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
   var done=false,html='';NEXTAT=null;NEXTDEP=null;
-  // 現在地→最寄り駅の徒歩所要(目安): 直線距離×1.5(信号・碁盤の目の迂回)÷80m/分 + 1分
-  var walkNear=null;
-  if(POS&&NEAREST&&DATA.coords[NEAREST]){
-    var dm=hav(POS.lat,POS.lon,DATA.coords[NEAREST][0],DATA.coords[NEAREST][1])*1000;
-    walkNear=Math.ceil(dm*1.5/80)+1;
-  }
-  var navTgt=NEAREST||FROM;  // 徒歩で向かう先＝最寄り駅
-  document.getElementById('navBtn').textContent=(navTgt?navTgt+'駅':'最寄り駅')+'まで案内'+(walkNear!=null?('（徒歩'+walkNear+'分）'):'');
+  // 現在地→最寄り駅の徒歩所要(目安)を計算し「○○駅まで案内（徒歩○分）」を表示
+  var walkNear=walkLabel();
   // 出発駅が最寄り駅のとき、徒歩時間+5秒の余裕を見て「確実に間に合う次発」を選ぶ
   var walkMin=(FROM===NEAREST&&walkNear!=null)?walkNear:0,LEAD=5;
   var needSec=nowSec+walkMin*60+LEAD;
@@ -226,6 +220,28 @@ function locate(){
   {enableHighAccuracy:false,timeout:8000,maximumAge:60000});
 }
 function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userPickedFrom){render();}else{if(!FROM)fallback();render();locate();}}
+// 徒歩所要(直線×1.5÷80m/分+1分)を計算し、案内ボタンの文言を更新。walkNear(分)を返す
+function walkLabel(){
+  var wn=null;
+  if(POS&&NEAREST&&DATA.coords[NEAREST]){
+    var dm=hav(POS.lat,POS.lon,DATA.coords[NEAREST][0],DATA.coords[NEAREST][1])*1000;
+    wn=Math.ceil(dm*1.5/80)+1;
+  }
+  var navTgt=NEAREST||FROM;
+  document.getElementById('navBtn').textContent=(navTgt?navTgt+'駅':'最寄り駅')+'まで案内'+(wn!=null?('（徒歩'+wn+'分）'):'');
+  return wn;
+}
+// 一定間隔: 現在地を取得し「徒歩○分」を更新（取得と表示を同周期に統一）。
+// 手動選択中はGPSで上書きしない。最寄り駅が変わった時だけリスト再描画(スクロール維持)。
+function locateWalk(){
+  if(!DATA||userPickedFrom||!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(function(p){
+    var la=p.coords.latitude,lo=p.coords.longitude;POS={lat:la,lon:lo};
+    var nf=nearest(la,lo);
+    if(nf!==FROM){FROM=nf;NEAREST=nf;if(!TO||TO===FROM)TO=defaultTo(FROM);render(isAtDefault());}
+    else{NEAREST=nf;walkLabel();}
+  },function(){},{enableHighAccuracy:false,timeout:8000,maximumAge:10000});
+}
 
 (function(){
   fetch('timetable.json').then(function(r){return r.json();}).then(function(j){
@@ -243,6 +259,7 @@ function refresh(){if(!DATA)return;if(!userPickedDay)DAYSEL=todayType();if(userP
     // 開いたまま次発時刻を過ぎたら自動で次発を更新（20秒ごとに確認）
     setInterval(function(){if(!DATA)return;var s=new Date().getHours()*3600+new Date().getMinutes()*60+new Date().getSeconds();
       if(NEXTAT!=null&&s>NEXTAT){var atDef=isAtDefault();render(atDef);}else updateAfter();},1000);
+    setInterval(locateWalk,30000);   // 30秒ごとに現在地取得＋「徒歩○分」更新
   }).catch(function(){document.getElementById('list').innerHTML='<div class="row">時刻表を読み込めませんでした。</div>';});
 })();
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refresh();});
